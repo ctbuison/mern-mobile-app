@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { View, Text, FlatList, ScrollView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PaperProvider, Appbar, Searchbar, Chip, Snackbar } from 'react-native-paper';
 import { products, categories } from './data/products';
 import ProductCard from './components/ProductCard';
 import { padToFullRows } from './utils/grid';
+import useBreakpoint from './hooks/useBreakpoint';
 import { colors, spacing, paperTheme } from './theme';
-
-const NUM_COLUMNS = 2;
 
 function EmptyList() {
   return <Text style={styles.empty}>No products match your search.</Text>;
@@ -18,7 +17,9 @@ function Separator() {
   return <View style={styles.separator} />;
 }
 
-export default function App() {
+function Catalog() {
+  const { numColumns } = useBreakpoint();
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [message, setMessage] = useState('');
@@ -29,21 +30,20 @@ export default function App() {
     const matchesQuery = product.name.toLowerCase().includes(normalizedQuery);
     return matchesCategory && matchesQuery;
   });
-  const gridData = padToFullRows(visibleProducts, NUM_COLUMNS);
+  const gridData = padToFullRows(visibleProducts, numColumns);
 
   const handleAdd = (product) => {
     setMessage(`${product.name} added to cart`);
   };
 
   return (
-    <PaperProvider theme={paperTheme}>
-      <StatusBar style="dark" />
-      <View style={styles.screen}>
-        <Appbar.Header>
-          <Appbar.Content title="Shopfront" />
-        </Appbar.Header>
+    <View style={styles.screen}>
+      <Appbar.Header>
+        <Appbar.Content title="Shopfront" />
+      </Appbar.Header>
 
-        <SafeAreaView style={styles.body} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView style={styles.body} edges={['left', 'right']}>
+        <View style={styles.content}>
           <View style={styles.top}>
             <Searchbar
               value={query}
@@ -75,6 +75,7 @@ export default function App() {
           </View>
 
           <FlatList
+            key={numColumns}
             data={gridData}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) =>
@@ -84,20 +85,32 @@ export default function App() {
                 <ProductCard product={item} onAdd={handleAdd} />
               )
             }
-            numColumns={NUM_COLUMNS}
+            numColumns={numColumns}
             columnWrapperStyle={styles.columnWrapper}
             ItemSeparatorComponent={Separator}
             ListEmptyComponent={EmptyList}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + spacing.xl },
+            ]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           />
-        </SafeAreaView>
+        </View>
+      </SafeAreaView>
 
-        <Snackbar visible={message !== ''} onDismiss={() => setMessage('')} duration={2000}>
-          {message}
-        </Snackbar>
-      </View>
+      <Snackbar visible={message !== ''} onDismiss={() => setMessage('')} duration={2000}>
+        {message}
+      </Snackbar>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <PaperProvider theme={paperTheme}>
+      <StatusBar style="dark" />
+      <Catalog />
     </PaperProvider>
   );
 }
@@ -110,13 +123,18 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+  content: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+  },
   top: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
   listContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
   },
   searchbar: {
     backgroundColor: colors.surface,
