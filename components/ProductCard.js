@@ -1,94 +1,52 @@
-import { View, Text, Image, Platform, StyleSheet } from 'react-native';
-import { colors, spacing, radius } from '../theme';
+import { StyleSheet } from 'react-native';
+import { Card, Text, Button, useTheme } from 'react-native-paper';
+import { spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, onAdd }) {
+  const theme = useTheme();
   const outOfStock = !product.inStock;
 
   return (
-    <View style={[styles.shadow, outOfStock && styles.outOfStock]}>
-      <View style={styles.clip}>
-        <View>
-          <Image source={{ uri: product.imageUrl }} style={styles.image} />
-          {outOfStock && <Text style={styles.badge}>Out of stock</Text>}
-        </View>
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {product.name}
+    <Card style={[styles.card, outOfStock && styles.outOfStock]}>
+      <Card.Cover source={{ uri: product.imageUrl }} style={styles.cover} />
+      <Card.Content style={styles.content}>
+        <Text variant="titleMedium" numberOfLines={1}>
+          {product.name}
+        </Text>
+        <Text variant="bodySmall" style={{ color: theme.colors.outline }}>
+          {product.category}
+        </Text>
+        <Text variant="titleSmall" style={{ color: theme.colors.primary }}>
+          {formatPrice(product.price)}
+        </Text>
+        {outOfStock && (
+          <Text variant="labelMedium" style={{ color: theme.colors.error }}>
+            Out of stock
           </Text>
-          <Text style={styles.category}>{product.category}</Text>
-          <Text style={[styles.price, outOfStock && styles.priceMuted]}>
-            {formatPrice(product.price)}
-          </Text>
-        </View>
-      </View>
-    </View>
+        )}
+      </Card.Content>
+      <Card.Actions>
+        <Button mode="contained-tonal" compact disabled={outOfStock} onPress={() => onAdd(product)}>
+          Add
+        </Button>
+      </Card.Actions>
+    </Card>
   );
 }
 
-const cardShadow = Platform.select({
-  ios: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-  },
-  android: {
-    elevation: 3,
-  },
-  default: {},
-});
-
 const styles = StyleSheet.create({
-  shadow: {
+  card: {
     flex: 1,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    ...cardShadow,
-  },
-  clip: {
-    flex: 1,
-    borderRadius: radius.md,
-    overflow: 'hidden',
   },
   outOfStock: {
     opacity: 0.6,
   },
-  image: {
-    width: '100%',
-    aspectRatio: 1,
+  cover: {
+    height: 140,
   },
-  badge: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.danger,
-    color: colors.surface,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  info: {
-    padding: spacing.md,
+  content: {
+    paddingTop: spacing.md,
     gap: 2,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  category: {
-    color: colors.muted,
-  },
-  price: {
-    marginTop: spacing.xs,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  priceMuted: {
-    color: colors.muted,
   },
 });
