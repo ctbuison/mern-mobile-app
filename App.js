@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PaperProvider, Appbar, Searchbar, Chip, Snackbar } from 'react-native-paper';
 import { products, categories } from './data/products';
 import ProductCard from './components/ProductCard';
+import DeviceInfo from './components/DeviceInfo';
 import { padToFullRows } from './utils/grid';
 import useBreakpoint from './hooks/useBreakpoint';
 import { colors, spacing, paperTheme } from './theme';
@@ -23,6 +24,7 @@ function Catalog() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [message, setMessage] = useState('');
+  const [showInfo, setShowInfo] = useState(false);
 
   const normalizedQuery = query.trim().toLowerCase();
   const visibleProducts = products.filter((product) => {
@@ -40,11 +42,18 @@ function Catalog() {
     <View style={styles.screen}>
       <Appbar.Header>
         <Appbar.Content title="Shopfront" />
+        <Appbar.Action
+          icon="information-outline"
+          accessibilityLabel="Device info"
+          onPress={() => setShowInfo((value) => !value)}
+        />
       </Appbar.Header>
 
       <SafeAreaView style={styles.body} edges={['left', 'right']}>
         <View style={styles.content}>
           <View style={styles.top}>
+            {showInfo && <DeviceInfo />}
+
             <Searchbar
               value={query}
               onChangeText={setQuery}
