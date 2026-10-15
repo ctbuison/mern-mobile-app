@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
-import MainTabs from './navigation/MainTabs';
+import RootDrawer from './navigation/RootDrawer';
 import { paperTheme } from './theme';
 
 export default function App() {
@@ -9,7 +9,7 @@ export default function App() {
     <PaperProvider theme={paperTheme}>
       <StatusBar style="dark" />
       <NavigationContainer>
-        <MainTabs />
+        <RootDrawer />
       </NavigationContainer>
     </PaperProvider>
   );

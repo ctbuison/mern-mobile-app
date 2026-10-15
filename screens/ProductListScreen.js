@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, FlatList, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DrawerActions } from '@react-navigation/native';
 import { Appbar, Searchbar, Chip, Snackbar } from 'react-native-paper';
 import { products, categories } from '../data/products';
 import ProductCard from '../components/ProductCard';
@@ -32,6 +33,9 @@ export default function ProductListScreen({ navigation }) {
     return matchesCategory && matchesQuery;
   });
   const gridData = padToFullRows(visibleProducts, numColumns);
+  const toggleMenu = () => {
+    navigation.dispatch(DrawerActions.toggleDrawer());
+  };
   const openProduct = (product) => {
     navigation.navigate('ProductDetail', { productId: product.id });
   };
@@ -43,6 +47,7 @@ export default function ProductListScreen({ navigation }) {
   return (
     <View style={styles.screen}>
       <Appbar.Header>
+        <Appbar.Action icon="menu" accessibilityLabel="Open menu" onPress={toggleMenu} />
         <Appbar.Content title="Shopfront" />
         <Appbar.Action
           icon="information-outline"
