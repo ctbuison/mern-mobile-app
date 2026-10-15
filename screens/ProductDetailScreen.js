@@ -1,29 +1,55 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Button, Card, IconButton, Snackbar, Text } from 'react-native-paper';
+import { products } from '../data/products';
+import { Text, Button, Card, Chip, IconButton, Snackbar } from 'react-native-paper';
 import { BREAKPOINTS } from '../hooks/useBreakpoint';
 import { colors, radius, spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 
 export default function ProductDetailScreen({ route, navigation }) {
-  const { product } = route.params;
+  const { productId } = route.params;
+  const index = products.findIndex((item) => item.id === productId);
+  const product = products[index];
+  const nextProduct = products[(index + 1) % products.length];
   const { width } = useWindowDimensions();
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
+  const [favorite, setFavorite] = useState(false);
+  /*
+  useEffect(() => {
+    console.log('stack:', navigation.getState().routes.map((item) => item.name).join(' > '), '| product', productId);
+  }, [productId]);
+  */
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: product ? product.name : 'Product',
+      headerRight: () => (
+        <IconButton
+          icon={favorite ? 'heart' : 'heart-outline'}
+          accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          onPress={() => setFavorite((value) => !value)}
+        />
+      ),
+    });
+  }, [navigation, product, favorite]);
+  if (!product) {
+    return (
+      <View style={styles.notFound}>
+        <Text variant="titleMedium">Product not found</Text>
+      </View>
+    );
+  }
+
   const outOfStock = !product.inStock;
   const wideLayout = width >= BREAKPOINTS.tablet;
 
-  const addToCart = () => {
+  const handleAddToCart = () => {
     setMessage(`${quantity} ${product.name} added to cart`);
   };
 
   return (
     <View style={styles.screen}>
-      <Appbar.Header>
-        <Appbar.BackAction onPress={navigation.goBack} />
-        <Appbar.Content title={product.name} />
-      </Appbar.Header>
 
       <SafeAreaView style={styles.body} edges={['left', 'right']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -41,18 +67,19 @@ export default function ProductDetailScreen({ route, navigation }) {
 
             <View style={styles.details}>
               <Text variant="titleLarge">{product.name}</Text>
-              <Text variant="bodyMedium" style={styles.category}>
-                {product.category}
-              </Text>
               <Text variant="headlineSmall" style={styles.price}>
                 {formatPrice(product.price)}
               </Text>
-              <Text
-                variant="labelLarge"
-                style={[styles.stock, outOfStock && styles.outOfStock]}
-              >
-                {outOfStock ? 'Out of stock' : 'In stock'}
-              </Text>
+              <View style={styles.chips}>
+                <Chip icon="tag-outline">
+                  {product.category}
+                </Chip>
+                <Chip icon={outOfStock ? 'close' : 'check'}>
+                  {outOfStock ? 'Out of stock' : 'In stock'}
+                </Chip>
+                  
+              </View>
+              
               <Text variant="bodyLarge" style={styles.description}>
                 {product.description}
               </Text>
@@ -77,9 +104,14 @@ export default function ProductDetailScreen({ route, navigation }) {
                   onPress={() => setQuantity((current) => Math.min(10, current + 1))}
                 />
               </View>
-
-              <Button mode="contained" disabled={outOfStock} onPress={addToCart}>
+              <Button mode="contained" disabled={outOfStock} onPress={handleAddToCart}>
                 Add to cart
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => navigation.push('ProductDetail', { productId: nextProduct.id })}
+              >
+                See next product
               </Button>
             </View>
           </View>
@@ -96,6 +128,12 @@ export default function ProductDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  notFound: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.background,
   },
   body: {
@@ -136,6 +174,11 @@ const styles = StyleSheet.create({
   details: {
     flex: 1,
     gap: spacing.md,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   category: {
     color: colors.muted,
