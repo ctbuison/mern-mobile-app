@@ -3,6 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import ShopStack from './ShopStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ShoppingListScreen from '../screens/ShoppingListScreen';
 import { useCart } from '../context/CartContext';
 import { colors } from '../theme';
 
@@ -27,6 +28,11 @@ export default function MainTabs() {
         name="Shop"
         component={ShopStack}
         options={{ headerShown: false, tabBarIcon: tabIcon('storefront-outline') }}
+      />
+      <Tab.Screen
+        name="Shopping List"
+        component={ShoppingListScreen}
+        options={{ tabBarIcon: tabIcon('format-list-checks') }}
       />
       <Tab.Screen
         name="Cart"
