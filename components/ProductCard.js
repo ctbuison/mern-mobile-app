@@ -1,16 +1,18 @@
 import { StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Card, Text, Button, useTheme } from 'react-native-paper';
 import { spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 
-export default function ProductCard({ product, onAdd, onPress }) {
+export default function ProductCard({ product, onAdd }) {
   const theme = useTheme();
+  const navigation = useNavigation();
   const outOfStock = !product.inStock;
 
   return (
     <Card
       style={[styles.card, outOfStock && styles.outOfStock]}
-      onPress={() => onPress(product)}
+      onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
     >
       <Card.Cover source={{ uri: product.imageUrl }} style={styles.cover} />
       <Card.Content style={styles.content}>

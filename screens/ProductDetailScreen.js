@@ -2,12 +2,16 @@ import { useState, useLayoutEffect } from 'react';
 import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { products } from '../data/products';
+import { useCart } from '../context/CartContext';
+import useScreenLog from '../hooks/useScreenLog';
 import { Text, Button, Card, Chip, IconButton, Snackbar } from 'react-native-paper';
 import { BREAKPOINTS } from '../hooks/useBreakpoint';
 import { colors, radius, spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 
 export default function ProductDetailScreen({ route, navigation }) {
+  useScreenLog();
+  const { addItem } = useCart();
   const { productId } = route.params;
   const index = products.findIndex((item) => item.id === productId);
   const product = products[index];
@@ -45,7 +49,8 @@ export default function ProductDetailScreen({ route, navigation }) {
   const wideLayout = width >= BREAKPOINTS.tablet;
 
   const handleAddToCart = () => {
-    setMessage(`${quantity} ${product.name} added to cart`);
+    addItem(product, quantity);
+    setMessage(`${quantity} x ${product.name} added to cart`);
   };
 
   return (

@@ -3,6 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import ShopStack from './ShopStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { useCart } from '../context/CartContext';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -13,6 +14,8 @@ const tabIcon = (name) =>
   };
 
 export default function MainTabs() {
+  const { count } = useCart();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -28,7 +31,10 @@ export default function MainTabs() {
       <Tab.Screen
         name="Cart"
         component={CartScreen}
-        options={{ tabBarIcon: tabIcon('cart-outline'), tabBarBadge: 3 }}
+        options={{
+          tabBarIcon: tabIcon('cart-outline'),
+          tabBarBadge: count > 0 ? count : undefined,
+        }}
       />
       <Tab.Screen
         name="Profile"
