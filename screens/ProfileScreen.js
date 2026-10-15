@@ -3,7 +3,6 @@ import { View, StyleSheet } from 'react-native';
 import { Avatar, Button, Chip, Text } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { setTokens } from '../lib/tokenStore';
 import { colors, spacing } from '../theme';
 
 export default function ProfileScreen() {
@@ -23,11 +22,6 @@ export default function ProfileScreen() {
     loadProfile();
   }, [loadProfile]);
 
-  // TEMPORARY (Module 7, Phase 6): ruin both tokens, then make a request.
-  const expireSession = () => {
-    setTokens({ accessToken: 'junk', refreshToken: 'junk' });
-    loadProfile();
-  };
   const initial = (user?.email ?? '?').charAt(0).toUpperCase();
 
   return (
@@ -38,7 +32,6 @@ export default function ProfileScreen() {
       <Button mode="contained" onPress={signOut} style={styles.button}>
         Sign out
       </Button>
-      <Button onPress={expireSession}>Expire session (dev)</Button>
     </View>
   );
 }

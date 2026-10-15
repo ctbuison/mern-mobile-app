@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { View, Image, ScrollView, StyleSheet } from 'react-native';
 import {
   Text,
@@ -6,11 +6,12 @@ import {
   Chip,
   IconButton,
   Snackbar,
-  ActivityIndicator,
   useTheme,
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchProduct } from '../services/products';
+import ErrorState from '../components/ErrorState';
+import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
+import useProduct from '../hooks/useProduct';
 import { useCart } from '../context/CartContext';
 import useScreenLog from '../hooks/useScreenLog';
 import useBreakpoint, { BREAKPOINTS } from '../hooks/useBreakpoint';
@@ -23,7 +24,7 @@ export default function ProductDetailScreen({ route, navigation }) {
   useScreenLog();
   const { addItem } = useCart();
   const { productId } = route.params;
-  const [product, setProduct] = useState(null);
+  const { product, status, error, reload } = useProduct(productId);
 
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,18 +32,6 @@ export default function ProductDetailScreen({ route, navigation }) {
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
   const [favorite, setFavorite] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchProduct(productId)
-      .then((result) => {
-        if (!cancelled) setProduct(result);
-      })
-      .catch((error) => console.log('Could not load product:', error.message));
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -57,12 +46,12 @@ export default function ProductDetailScreen({ route, navigation }) {
     });
   }, [navigation, product, favorite]);
 
-  if (!product) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
+  if (status === 'loading') {
+    return <ProductDetailSkeleton />;
+  }
+
+  if (status === 'error') {
+    return <ErrorState message={error} onRetry={reload} />;
   }
 
   const isWide = width >= BREAKPOINTS.tablet;
@@ -138,11 +127,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollContent: {
     padding: spacing.lg,
