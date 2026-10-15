@@ -8,7 +8,10 @@ export default function ProductCard({ product, onAdd, onPress }) {
   const outOfStock = !product.inStock;
 
   return (
-    <Card style={[styles.card, outOfStock && styles.outOfStock]} onPress={onPress}>
+    <Card
+      style={[styles.card, outOfStock && styles.outOfStock]}
+      onPress={() => onPress(product)}
+    >
       <Card.Cover source={{ uri: product.imageUrl }} style={styles.cover} />
       <Card.Content style={styles.content}>
         <Text variant="titleMedium" numberOfLines={1}>

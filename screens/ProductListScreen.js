@@ -17,7 +17,7 @@ function Separator() {
   return <View style={styles.separator} />;
 }
 
-export default function ProductListScreen({ onSelectProduct }) {
+export default function ProductListScreen({ navigation }) {
   const { numColumns } = useBreakpoint();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
@@ -32,6 +32,9 @@ export default function ProductListScreen({ onSelectProduct }) {
     return matchesCategory && matchesQuery;
   });
   const gridData = padToFullRows(visibleProducts, numColumns);
+  const openProduct = (product) => {
+    navigation.navigate('ProductDetail', { product });
+  };
 
   const handleAdd = (product) => {
     setMessage(`${product.name} added to cart`);
@@ -93,7 +96,7 @@ export default function ProductListScreen({ onSelectProduct }) {
                 <ProductCard
                   product={item}
                   onAdd={handleAdd}
-                  onPress={() => onSelectProduct(item)}
+                  onPress={openProduct}
                 />
               )
             }

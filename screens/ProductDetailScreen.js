@@ -3,10 +3,11 @@ import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Appbar, Button, Card, IconButton, Snackbar, Text } from 'react-native-paper';
 import { BREAKPOINTS } from '../hooks/useBreakpoint';
-import { colors, spacing } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 
-export default function ProductDetailsScreen({ product, onBack }) {
+export default function ProductDetailScreen({ route, navigation }) {
+  const { product } = route.params;
   const { width } = useWindowDimensions();
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
@@ -20,7 +21,7 @@ export default function ProductDetailsScreen({ product, onBack }) {
   return (
     <View style={styles.screen}>
       <Appbar.Header>
-        <Appbar.BackAction onPress={onBack} />
+        <Appbar.BackAction onPress={navigation.goBack} />
         <Appbar.Content title={product.name} />
       </Appbar.Header>
 
@@ -28,12 +29,14 @@ export default function ProductDetailsScreen({ product, onBack }) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={[styles.content, wideLayout && styles.wideContent]}>
             <Card style={[styles.imageCard, wideLayout && styles.wideImageCard]}>
-              <Image
-                source={{ uri: product.imageUrl }}
-                style={[styles.image, wideLayout && styles.wideImage]}
-                resizeMode="cover"
-                accessibilityLabel={product.name}
-              />
+              <View style={styles.imageClip}>
+                <Image
+                  source={{ uri: product.imageUrl }}
+                  style={[styles.image, wideLayout && styles.wideImage]}
+                  resizeMode="cover"
+                  accessibilityLabel={product.name}
+                />
+              </View>
             </Card>
 
             <View style={styles.details}>
@@ -114,7 +117,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   imageCard: {
+    borderRadius: radius.md,
+  },
+  imageClip: {
     overflow: 'hidden',
+    borderRadius: radius.md,
   },
   wideImageCard: {
     flex: 1,
