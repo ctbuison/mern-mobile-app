@@ -1,30 +1,49 @@
-import { useState, useLayoutEffect } from 'react';
-import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { products } from '../data/products';
+import { useState, useEffect, useLayoutEffect } from 'react';
+import { View, Image, ScrollView, StyleSheet } from 'react-native';
+import {
+  Text,
+  Button,
+  Chip,
+  IconButton,
+  Snackbar,
+  ActivityIndicator,
+  useTheme,
+} from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchProduct } from '../services/products';
 import { useCart } from '../context/CartContext';
 import useScreenLog from '../hooks/useScreenLog';
-import { Text, Button, Card, Chip, IconButton, Snackbar } from 'react-native-paper';
-import { BREAKPOINTS } from '../hooks/useBreakpoint';
-import { colors, radius, spacing } from '../theme';
+import useBreakpoint, { BREAKPOINTS } from '../hooks/useBreakpoint';
 import { formatPrice } from '../utils/format';
+import { colors, spacing } from '../theme';
+
+const MAX_QUANTITY = 10;
 
 export default function ProductDetailScreen({ route, navigation }) {
   useScreenLog();
   const { addItem } = useCart();
   const { productId } = route.params;
-  const index = products.findIndex((item) => item.id === productId);
-  const product = products[index];
-  const nextProduct = products[(index + 1) % products.length];
-  const { width } = useWindowDimensions();
+  const [product, setProduct] = useState(null);
+
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useBreakpoint();
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
   const [favorite, setFavorite] = useState(false);
-  /*
+
   useEffect(() => {
-    console.log('stack:', navigation.getState().routes.map((item) => item.name).join(' > '), '| product', productId);
+    let cancelled = false;
+    fetchProduct(productId)
+      .then((result) => {
+        if (!cancelled) setProduct(result);
+      })
+      .catch((error) => console.log('Could not load product:', error.message));
+    return () => {
+      cancelled = true;
+    };
   }, [productId]);
-  */
+
   useLayoutEffect(() => {
     navigation.setOptions({
       title: product ? product.name : 'Product',
@@ -37,16 +56,17 @@ export default function ProductDetailScreen({ route, navigation }) {
       ),
     });
   }, [navigation, product, favorite]);
+
   if (!product) {
     return (
-      <View style={styles.notFound}>
-        <Text variant="titleMedium">Product not found</Text>
+      <View style={styles.centered}>
+        <ActivityIndicator />
       </View>
     );
   }
 
+  const isWide = width >= BREAKPOINTS.tablet;
   const outOfStock = !product.inStock;
-  const wideLayout = width >= BREAKPOINTS.tablet;
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -55,73 +75,57 @@ export default function ProductDetailScreen({ route, navigation }) {
 
   return (
     <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + spacing.xl },
+        ]}
+      >
+        <View style={[styles.layout, isWide && styles.layoutWide]}>
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={[styles.image, isWide && styles.imageWide]}
+          />
 
-      <SafeAreaView style={styles.body} edges={['left', 'right']}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.content, wideLayout && styles.wideContent]}>
-            <Card style={[styles.imageCard, wideLayout && styles.wideImageCard]}>
-              <View style={styles.imageClip}>
-                <Image
-                  source={{ uri: product.imageUrl }}
-                  style={[styles.image, wideLayout && styles.wideImage]}
-                  resizeMode="cover"
-                  accessibilityLabel={product.name}
-                />
-              </View>
-            </Card>
+          <View style={styles.details}>
+            <Text variant="headlineSmall">{product.name}</Text>
+            <Text variant="titleLarge" style={{ color: theme.colors.primary }}>
+              {formatPrice(product.price)}
+            </Text>
 
-            <View style={styles.details}>
-              <Text variant="titleLarge">{product.name}</Text>
-              <Text variant="headlineSmall" style={styles.price}>
-                {formatPrice(product.price)}
-              </Text>
-              <View style={styles.chips}>
-                <Chip icon="tag-outline">
-                  {product.category}
-                </Chip>
-                <Chip icon={outOfStock ? 'close' : 'check'}>
-                  {outOfStock ? 'Out of stock' : 'In stock'}
-                </Chip>
-                  
-              </View>
-              
-              <Text variant="bodyLarge" style={styles.description}>
-                {product.description}
-              </Text>
-
-              <Text variant="titleMedium">Quantity</Text>
-              <View style={styles.quantity}>
-                <IconButton
-                  icon="minus"
-                  mode="outlined"
-                  accessibilityLabel="Decrease quantity"
-                  disabled={outOfStock || quantity <= 1}
-                  onPress={() => setQuantity((current) => Math.max(1, current - 1))}
-                />
-                <Text variant="titleMedium" accessibilityLabel={`Quantity ${quantity}`}>
-                  {quantity}
-                </Text>
-                <IconButton
-                  icon="plus"
-                  mode="outlined"
-                  accessibilityLabel="Increase quantity"
-                  disabled={outOfStock || quantity >= 10}
-                  onPress={() => setQuantity((current) => Math.min(10, current + 1))}
-                />
-              </View>
-              <Button mode="contained" disabled={outOfStock} onPress={handleAddToCart}>
-                Add to cart
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.push('ProductDetail', { productId: nextProduct.id })}
-              >
-                See next product
-              </Button>
+            <View style={styles.chips}>
+              <Chip compact>{product.category}</Chip>
+              <Chip compact icon={outOfStock ? 'close' : 'check'}>
+                {outOfStock ? 'Out of stock' : 'In stock'}
+              </Chip>
             </View>
+
+            <Text variant="bodyLarge">{product.description}</Text>
+
+            <View style={styles.quantityRow}>
+              <IconButton
+                icon="minus"
+                mode="contained-tonal"
+                accessibilityLabel="Decrease quantity"
+                disabled={outOfStock || quantity <= 1}
+                onPress={() => setQuantity((value) => value - 1)}
+              />
+              <Text variant="titleMedium">{quantity}</Text>
+              <IconButton
+                icon="plus"
+                mode="contained-tonal"
+                accessibilityLabel="Increase quantity"
+                disabled={outOfStock || quantity >= MAX_QUANTITY}
+                onPress={() => setQuantity((value) => value + 1)}
+              />
+            </View>
+
+            <Button mode="contained" disabled={outOfStock} onPress={handleAddToCart}>
+              Add to cart
+            </Button>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </ScrollView>
 
       <Snackbar visible={message !== ''} onDismiss={() => setMessage('')} duration={2000}>
         {message}
@@ -135,46 +139,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  notFound: {
+  centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  body: {
-    flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     padding: spacing.lg,
   },
-  content: {
+  layout: {
     width: '100%',
-    maxWidth: 560,
+    maxWidth: 1100,
     alignSelf: 'center',
     gap: spacing.lg,
   },
-  wideContent: {
-    maxWidth: 1000,
+  layoutWide: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  imageCard: {
-    borderRadius: radius.md,
-  },
-  imageClip: {
-    overflow: 'hidden',
-    borderRadius: radius.md,
-  },
-  wideImageCard: {
-    flex: 1,
-  },
   image: {
     width: '100%',
-    aspectRatio: 1.5,
+    aspectRatio: 1,
+    borderRadius: 12,
   },
-  wideImage: {
-    aspectRatio: 0.9,
+  imageWide: {
+    width: '45%',
   },
   details: {
     flex: 1,
@@ -182,25 +171,9 @@ const styles = StyleSheet.create({
   },
   chips: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  category: {
-    color: colors.muted,
-  },
-  price: {
-    color: colors.primary,
-  },
-  stock: {
-    color: colors.success,
-  },
-  outOfStock: {
-    color: colors.danger,
-  },
-  description: {
-    lineHeight: 24,
-  },
-  quantity: {
+  quantityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,

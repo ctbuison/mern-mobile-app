@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { Appbar, Searchbar, Chip, Snackbar } from 'react-native-paper';
-import { products, categories } from '../data/products';
+import { fetchProducts } from '../services/products';
+//import { setAccessToken } from '../lib/tokenStore';
 import ProductCard from '../components/ProductCard';
 import DeviceInfo from '../components/DeviceInfo';
 import { useCart } from '../context/CartContext';
@@ -29,7 +30,29 @@ export default function ProductListScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [message, setMessage] = useState('');
   const [showInfo, setShowInfo] = useState(false);
+  const [products, setProducts] = useState([]);
 
+  const categories = ['All', ...new Set(products.map((product) => product.category))];
+
+  const loadProducts = useCallback(async () => {
+    try {
+      const list = await fetchProducts();
+      setProducts(list);
+    } catch (error) {
+      console.log('Could not load products:', error.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+  /*
+  // TEMPORARY (Module 6, Phase 4): simulate an expired access token.
+  const breakToken = () => {
+    setAccessToken('this.is.not-a-real-token');
+    console.log('[dev] Access token broken on purpose');
+  };
+  */
   const normalizedQuery = query.trim().toLowerCase();
   const visibleProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
@@ -55,6 +78,7 @@ export default function ProductListScreen({ navigation }) {
       <Appbar.Header>
         <Appbar.Action icon="menu" accessibilityLabel="Open menu" onPress={toggleMenu} />
         <Appbar.Content title="Shopfront" />
+        <Appbar.Action icon="refresh" accessibilityLabel="Reload products" onPress={loadProducts} />
         <Appbar.Action
           icon="information-outline"
           accessibilityLabel="Device info"

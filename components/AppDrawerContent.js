@@ -5,12 +5,15 @@ import {
   DrawerItemList,
   DrawerItem,
 } from '@react-navigation/drawer';
+import { useAuth } from '../context/AuthContext';
 import { colors, spacing } from '../theme';
 
 export default function AppDrawerContent(props) {
+  const { signOut } = useAuth();
+
   const handleSignOut = () => {
     props.navigation.closeDrawer();
-    console.log('Sign out pressed (wired up in Module 7)');
+    signOut();
   };
 
   return (

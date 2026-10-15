@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import appConfig from '../app.json';
+import { API_URL } from '../config';
 import { colors, spacing } from '../theme';
 
 export default function AboutScreen() {
@@ -8,6 +9,7 @@ export default function AboutScreen() {
     <View style={styles.screen}>
       <Text variant="titleLarge">Shopfront</Text>
       <Text style={styles.hint}>Version {appConfig.expo.version}</Text>
+      <Text style={styles.hint}>API: {API_URL}</Text>
       <Text style={styles.hint}>Built during the MERN Stack Mobile Hybrid Development bootcamp.</Text>
     </View>
   );

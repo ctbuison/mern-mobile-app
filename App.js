@@ -1,19 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
-import RootDrawer from './navigation/RootDrawer';
-import { CartProvider } from './context/CartContext';
+import RootNavigator from './navigation/RootNavigator';
+import { AuthProvider } from './context/AuthContext';
 import { paperTheme } from './theme';
 
 export default function App() {
   return (
     <PaperProvider theme={paperTheme}>
       <StatusBar style="dark" />
-      <CartProvider>
+      <AuthProvider>
         <NavigationContainer>
-          <RootDrawer />
+          <RootNavigator />
         </NavigationContainer>
-      </CartProvider>
+      </AuthProvider>
     </PaperProvider>
   );
 }
