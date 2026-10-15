@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { useAuth } from '../../context/AuthContext';
 import { parseApiError } from '../../lib/errors';
+import { loadLastEmail, saveLastEmail } from '../../lib/preferences';
 import { colors, spacing } from '../../theme';
 
 export default function LoginScreen({ navigation }) {
@@ -14,12 +15,17 @@ export default function LoginScreen({ navigation }) {
   const [formError, setFormError] = useState('');
 
   const canSubmit = email.trim() !== '' && password !== '' && !submitting;
+  // Pre-fill the email address from the last successful sign-in (unless the user already typed one).
+  useEffect(() => {
+    loadLastEmail().then((saved) => setEmail((current) => current || saved));
+  }, []);
 
   const handleSubmit = async () => {
     setFormError('');
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
+      await saveLastEmail(email.trim());
     } catch (error) {
       setFormError(parseApiError(error).message);
       setSubmitting(false);
