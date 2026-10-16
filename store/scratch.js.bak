@@ -1,0 +1,17 @@
+// TEMPORARY: proves the store works before any screen uses it. Deleted at the end of the phase.
+import { store } from './index';
+import { addItem, removeItem, clearCart, selectCartCount, selectCartTotal } from './cartSlice';
+
+const milk = { id: 'p1', name: 'Milk', price: 85 };
+const rice = { id: 'p2', name: 'Rice', price: 60 };
+
+store.dispatch(addItem(milk));
+store.dispatch(addItem(milk, 2));
+store.dispatch(addItem(rice));
+console.log('[scratch] count', selectCartCount(store.getState()), 'total', selectCartTotal(store.getState()));
+
+store.dispatch(removeItem('p1'));
+console.log('[scratch] after remove:', JSON.stringify(store.getState()));
+
+store.dispatch(clearCart());
+console.log('[scratch] after clear:', JSON.stringify(store.getState()));

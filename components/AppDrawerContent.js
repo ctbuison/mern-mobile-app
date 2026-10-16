@@ -6,10 +6,12 @@ import {
   DrawerItem,
 } from '@react-navigation/drawer';
 import { useAuth } from '../context/AuthContext';
+import useProducts from '../hooks/useProducts';
 import { colors, spacing } from '../theme';
 
 export default function AppDrawerContent(props) {
   const { signOut } = useAuth();
+  const { products } = useProducts();
 
   const handleSignOut = () => {
     props.navigation.closeDrawer();
@@ -22,7 +24,7 @@ export default function AppDrawerContent(props) {
         <Text variant="headlineSmall" style={styles.brand}>
           Shopfront
         </Text>
-        <Text style={styles.tagline}>Everyday essentials</Text>
+        <Text style={styles.tagline}>{products.length} products</Text>
       </View>
       <DrawerItemList {...props} />
       <DrawerItem label="Sign out" onPress={handleSignOut} />
