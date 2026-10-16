@@ -1,6 +1,7 @@
 import RootDrawer from './RootDrawer';
 import AuthStack from './AuthStack';
 import SplashScreen from '../components/SplashScreen';
+import QueueRunner from '../components/QueueRunner';
 import { useAuth } from '../context/AuthContext';
 
 export default function RootNavigator() {
@@ -14,5 +15,10 @@ export default function RootNavigator() {
     return <AuthStack />;
   }
 
-  return <RootDrawer />;
+  return (
+    <>
+      <QueueRunner />
+      <RootDrawer />
+    </>
+  );
 }

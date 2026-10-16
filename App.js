@@ -5,7 +5,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './navigation/RootNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
-import { store } from './store';
+import { PersistGate } from 'redux-persist/integration/react';
+import SplashScreen from './components/SplashScreen';
+import { persistor, store } from './store';
 import { paperTheme } from './theme';
 
 export default function App() {
@@ -14,11 +16,13 @@ export default function App() {
       <PaperProvider theme={paperTheme}>
         <StatusBar style="dark" />
         <ErrorBoundary>
-          <AuthProvider>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
-          </AuthProvider>
+          <PersistGate loading={<SplashScreen />} persistor={persistor}>
+            <AuthProvider>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </AuthProvider>
+          </PersistGate>
         </ErrorBoundary>
       </PaperProvider>
     </Provider>

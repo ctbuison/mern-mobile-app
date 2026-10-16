@@ -7,6 +7,7 @@ import {
   selectProductsError,
   selectProductsRefreshing,
   selectProductsStatus,
+  selectProductsUpdatedAt,
 } from '../store/productsSlice';
 import useOnReconnect from './useOnReconnect';
 
@@ -17,6 +18,7 @@ export default function useProducts() {
   const storeStatus = useSelector(selectProductsStatus);
   const error = useSelector(selectProductsError);
   const refreshing = useSelector(selectProductsRefreshing);
+  const lastUpdated = useSelector(selectProductsUpdatedAt);
 
   // Before the first request starts the store says 'idle'. To the screen that is still "loading".
   const status = storeStatus === 'idle' ? 'loading' : storeStatus;
@@ -40,5 +42,5 @@ export default function useProducts() {
   // When the connection comes back, quietly fetch fresh data.
   useOnReconnect(refresh);
 
-  return { products, status, error, refreshing, reload, refresh };
+  return { products, status, error, refreshing, lastUpdated, reload, refresh };
 }

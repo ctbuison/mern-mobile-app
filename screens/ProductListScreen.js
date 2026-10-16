@@ -13,6 +13,7 @@ import { addItem } from '../store/cartSlice';
 import useProducts from '../hooks/useProducts';
 import useScreenLog from '../hooks/useScreenLog';
 import { padToFullRows } from '../utils/grid';
+import { formatUpdated } from '../utils/format';
 import useBreakpoint from '../hooks/useBreakpoint';
 import { colors, spacing } from '../theme';
 
@@ -33,7 +34,7 @@ export default function ProductListScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [message, setMessage] = useState('');
   const [showInfo, setShowInfo] = useState(false);
-  const { products, status, error, refreshing, reload, refresh } = useProducts();
+  const { products, status, error, refreshing, lastUpdated, reload, refresh } = useProducts();
 
   const categories = ['All', ...new Set(products.map((product) => product.category))];
 
@@ -116,6 +117,11 @@ export default function ProductListScreen({ navigation }) {
 
             {status === 'success' && (
               <Text style={styles.resultsText}>{visibleProducts.length} products</Text>
+            )}
+            {status === 'error' && products.length > 0 && (
+              <Text style={styles.resultsText}>
+                Could not update. Showing products saved on {formatUpdated(lastUpdated)}.
+              </Text>
             )}
           </View>
 

@@ -1,19 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useDispatch, useSelector } from 'react-redux';
 import { ActivityIndicator, Avatar, Button, Chip, Text } from 'react-native-paper';
 import CameraModal from '../components/CameraModal';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { getErrorMessage } from '../lib/errors';
-import { uploadAvatar } from '../services/uploads';
+import {
+  selectAvatarUploading,
+  selectAvatarUri,
+  selectAvatarWaiting,
+  sendPendingAvatar,
+  submitAvatar,
+} from '../store/profileSlice';
 import { colors, spacing } from '../theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const dispatch = useDispatch();
+  const avatarUri = useSelector(selectAvatarUri);
+  const waiting = useSelector(selectAvatarWaiting);
+  const uploading = useSelector(selectAvatarUploading);
   const [role, setRole] = useState(null);
-  const [photoUri, setPhotoUri] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
 
@@ -30,19 +38,16 @@ export default function ProfileScreen() {
     loadProfile();
   }, [loadProfile]);
 
-  // Show the photo straight away, then upload it and swap in the server's copy.
+  // Queue the photo and try to send it. The store keeps it safe if the phone is offline.
   const savePhoto = async (asset) => {
-    setPhotoUri(asset.uri);
-    setUploading(true);
+    const result = await dispatch(submitAvatar(asset));
 
-    try {
-      const url = await uploadAvatar(asset);
-      setPhotoUri(url);
+    if (sendPendingAvatar.fulfilled.match(result)) {
       setMessage('Photo uploaded.');
-    } catch (error) {
-      setMessage(getErrorMessage(error));
-    } finally {
-      setUploading(false);
+    } else if (result.payload?.retry) {
+      setMessage('Saved on this phone. It will upload when you are back online.');
+    } else if (result.payload) {
+      setMessage(result.payload.message);
     }
   };
 
@@ -69,8 +74,8 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      {photoUri ? (
-        <Avatar.Image size={96} source={{ uri: photoUri }} />
+      {avatarUri ? (
+        <Avatar.Image size={96} source={{ uri: avatarUri }} />
       ) : (
         <Avatar.Text size={96} label={initial} />
       )}
@@ -85,6 +90,9 @@ export default function ProfileScreen() {
         </Button>
       </View>
       {uploading && <ActivityIndicator />}
+      {waiting && !uploading && (
+        <Text style={styles.message}>Waiting to upload. Will retry when you are online.</Text>
+      )}
       {message && <Text style={styles.message}>{message}</Text>}
       <Button mode="contained" onPress={signOut} style={styles.button}>
         Sign out
@@ -113,6 +121,7 @@ const styles = StyleSheet.create({
   },
   message: {
     color: colors.muted,
+    textAlign: 'center',
   },
   button: {
     marginTop: spacing.lg,

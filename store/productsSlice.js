@@ -9,7 +9,10 @@ import { sessionEnded } from './sessionActions';
 async function fetchWhenOnline(_arg, { rejectWithValue }) {
   try {
     await ensureOnline();
-    return await fetchProducts(); // becomes action.payload of the "fulfilled" action
+    const items = await fetchProducts();
+    // The "fulfilled" action carries this object as action.payload.
+    // The time is read HERE, because a reducer must give the same answer every time it runs.
+    return { items, fetchedAt: new Date().toISOString() };
   } catch (err) {
     return rejectWithValue(getErrorMessage(err)); // becomes action.payload of the "rejected" action
   }
@@ -26,6 +29,7 @@ export const refreshProducts = createAsyncThunk('products/refresh', fetchWhenOnl
 
 const initialState = {
   items: [],
+  lastUpdated: null, // when `items` was last fetched from the server
   status: 'idle', // 'idle' | 'loading' | 'success' | 'error'
   error: '',
   refreshing: false,
@@ -42,7 +46,8 @@ const productsSlice = createSlice({
         state.error = '';
       })
       .addCase(loadProducts.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = action.payload.items;
+        state.lastUpdated = action.payload.fetchedAt;
         state.status = 'success';
       })
       .addCase(loadProducts.rejected, (state, action) => {
@@ -53,7 +58,8 @@ const productsSlice = createSlice({
         state.refreshing = true;
       })
       .addCase(refreshProducts.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = action.payload.items;
+        state.lastUpdated = action.payload.fetchedAt;
         state.status = 'success';
         state.refreshing = false;
       })
@@ -67,6 +73,7 @@ const productsSlice = createSlice({
 export default productsSlice.reducer;
 
 export const selectProducts = (state) => state.products.items;
+export const selectProductsUpdatedAt = (state) => state.products.lastUpdated;
 export const selectProductsStatus = (state) => state.products.status;
 export const selectProductsError = (state) => state.products.error;
 export const selectProductsRefreshing = (state) => state.products.refreshing;
