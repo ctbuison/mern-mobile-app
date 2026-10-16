@@ -5,13 +5,14 @@ import {
   DrawerItemList,
   DrawerItem,
 } from '@react-navigation/drawer';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
-import useProducts from '../hooks/useProducts';
+import { selectProducts } from '../store/productsSlice';
 import { colors, spacing } from '../theme';
 
 export default function AppDrawerContent(props) {
   const { signOut } = useAuth();
-  const { products } = useProducts();
+  const products = useSelector(selectProducts);
 
   const handleSignOut = () => {
     props.navigation.closeDrawer();
