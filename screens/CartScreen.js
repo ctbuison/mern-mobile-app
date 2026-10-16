@@ -1,11 +1,14 @@
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Text, List, IconButton, Divider } from 'react-native-paper';
-import { useCart } from '../context/CartContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { removeItem, selectCartItems, selectCartTotal } from '../store/cartSlice';
 import { formatPrice } from '../utils/format';
 import { colors, spacing } from '../theme';
 
 export default function CartScreen() {
-  const { items, total, removeItem } = useCart();
+  const dispatch = useDispatch();
+  const items = useSelector(selectCartItems);
+  const total = useSelector(selectCartTotal);
 
   if (items.length === 0) {
     return (
@@ -30,7 +33,7 @@ export default function CartScreen() {
               <IconButton
                 icon="delete-outline"
                 accessibilityLabel={`Remove ${item.product.name}`}
-                onPress={() => removeItem(item.product.id)}
+                onPress={() => dispatch(removeItem(item.product.id))}
               />
             )}
           />

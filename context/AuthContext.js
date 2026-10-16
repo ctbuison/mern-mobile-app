@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { api, setAuthFailureHandler } from '../lib/api';
 import { clearTokens, setTokens } from '../lib/tokenStore';
 import { clearSession, loadSession, saveSession } from '../lib/sessionStorage';
+import { sessionEnded } from '../store/sessionActions';
 
 const AuthContext = createContext(null);
 
@@ -9,13 +11,15 @@ export function AuthProvider({ children }) {
   // 'loading' = still checking for a saved session, then 'signedOut' or 'signedIn'
   const [status, setStatus] = useState('loading');
   const [user, setUser] = useState(null);
+  const dispatch = useDispatch();
 
   const endSession = useCallback(async () => {
     clearTokens();
     await clearSession();
+    dispatch(sessionEnded());
     setUser(null);
     setStatus('signedOut');
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     // If a request discovers the session is dead (refresh rejected), sign out.

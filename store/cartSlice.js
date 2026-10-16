@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { sessionEnded } from './sessionActions';
 
 const initialState = {
   items: [],
@@ -29,6 +30,10 @@ const cartSlice = createSlice({
     clearCart(state) {
       state.items = [];
     },
+  },
+  // Actions that belong to another part of the app, but this slice must react to.
+  extraReducers: (builder) => {
+    builder.addCase(sessionEnded, () => initialState);
   },
 });
 

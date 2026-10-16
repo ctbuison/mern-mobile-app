@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { fetchProducts } from '../services/products';
 import { ensureOnline } from '../lib/network';
 import { getErrorMessage } from '../lib/errors';
+import { sessionEnded } from './sessionActions';
 
 // A thunk is a function Redux can run for us. createAsyncThunk wraps it and automatically
 // dispatches three actions: products/load/pending, then fulfilled or rejected.
@@ -58,7 +59,8 @@ const productsSlice = createSlice({
       })
       .addCase(refreshProducts.rejected, (state) => {
         state.refreshing = false;
-      });
+      })
+      .addCase(sessionEnded, () => initialState);
   },
 });
 

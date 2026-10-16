@@ -3,12 +3,13 @@ import { View, Text, FlatList, ScrollView, RefreshControl, StyleSheet } from 're
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { Appbar, Searchbar, Chip, Snackbar } from 'react-native-paper';
+import { useDispatch } from 'react-redux';
 import ProductCard from '../components/ProductCard';
 import ErrorState from '../components/ErrorState';
 import OfflineBanner from '../components/OfflineBanner';
 import ProductListSkeleton from '../components/ProductListSkeleton';
 import DeviceInfo from '../components/DeviceInfo';
-import { useCart } from '../context/CartContext';
+import { addItem } from '../store/cartSlice';
 import useProducts from '../hooks/useProducts';
 import useScreenLog from '../hooks/useScreenLog';
 import { padToFullRows } from '../utils/grid';
@@ -25,7 +26,7 @@ function Separator() {
 
 export default function ProductListScreen({ navigation }) {
   useScreenLog();
-  const { addItem } = useCart();
+  const dispatch = useDispatch();
   const { numColumns } = useBreakpoint();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
@@ -64,7 +65,7 @@ export default function ProductListScreen({ navigation }) {
   };
 
   const handleAdd = (product) => {
-    addItem(product);
+    dispatch(addItem(product));
     setMessage(`${product.name} added to cart`);
   };
 
