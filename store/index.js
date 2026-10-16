@@ -14,6 +14,8 @@ import devToolsEnhancer from 'redux-devtools-expo-dev-plugin';
 import cartReducer from './cartSlice';
 import productsReducer from './productsSlice';
 import profileReducer from './profileSlice';
+import listReducer from './listSlice';
+import tagsReducer from './tagsSlice';
 import { logger } from './logger';
 
 // Some slices hold things that must NOT survive a restart (a saved "loading" status, a running upload).
@@ -30,17 +32,25 @@ const profilePersistConfig = {
   whitelist: ['avatarUrl', 'pendingAvatar'],
 };
 
+const listPersistConfig = {
+  key: 'list',
+  storage: AsyncStorage,
+  whitelist: ['items', 'lastUpdated'],
+};
+
 const rootReducer = combineReducers({
   cart: cartReducer,
+  list: persistReducer(listPersistConfig, listReducer),
   products: persistReducer(productsPersistConfig, productsReducer),
   profile: persistReducer(profilePersistConfig, profileReducer),
+  tags: tagsReducer,
 });
 
-// The root config saves everything except the two slices above, which look after themselves.
+// The root config saves everything except the slices above, which persist themselves.
 const rootPersistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  blacklist: ['products', 'profile'],
+  blacklist: ['products', 'profile', 'list'],
 };
 
 export const store = configureStore({

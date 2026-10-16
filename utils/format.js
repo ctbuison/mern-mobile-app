@@ -9,6 +9,10 @@ export function formatUpdated(iso) {
   });
 }
 
+// "14.5995, 120.9842" - a coordinate pair, rounded to about 10 metres.
+export function formatCoords({ latitude, longitude }) {
+  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
 
 export function formatPrice(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {

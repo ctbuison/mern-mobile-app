@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Avatar, Text } from 'react-native-paper';
 import {
   DrawerContentScrollView,
   DrawerItemList,
@@ -7,12 +7,15 @@ import {
 } from '@react-navigation/drawer';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
+import { selectAvatarUri } from '../store/profileSlice';
 import { selectProducts } from '../store/productsSlice';
 import { colors, spacing } from '../theme';
 
 export default function AppDrawerContent(props) {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const avatarUri = useSelector(selectAvatarUri);
   const products = useSelector(selectProducts);
+  const initial = (user?.email ?? '?').charAt(0).toUpperCase();
 
   const handleSignOut = () => {
     props.navigation.closeDrawer();
@@ -22,10 +25,17 @@ export default function AppDrawerContent(props) {
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.brand}>
-          Shopfront
-        </Text>
-        <Text style={styles.tagline}>{products.length} products</Text>
+        {avatarUri ? (
+          <Avatar.Image size={48} source={{ uri: avatarUri }} />
+        ) : (
+          <Avatar.Text size={48} label={initial} />
+        )}
+        <View>
+          <Text variant="headlineSmall" style={styles.brand}>
+            Shopfront
+          </Text>
+          <Text style={styles.tagline}>{products.length} products</Text>
+        </View>
       </View>
       <DrawerItemList {...props} />
       <DrawerItem label="Sign out" onPress={handleSignOut} />
@@ -35,6 +45,9 @@ export default function AppDrawerContent(props) {
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     padding: spacing.lg,
     marginBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,

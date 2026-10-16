@@ -1,44 +1,41 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
-import { getErrorMessage } from '../lib/errors';
-import { ensureOnline } from '../lib/network';
-import { createItem, deleteItem, fetchItems, setItemDone } from '../services/tasks';
+import {
+  addListItem,
+  loadList,
+  refreshList,
+  removeListItem,
+  selectListError,
+  selectListItems,
+  selectListRefreshing,
+  selectListStatus,
+  toggleListItem,
+} from '../store/listSlice';
 import useOnReconnect from './useOnReconnect';
 
 export default function useShoppingList() {
   const { user } = useAuth();
   const ownerId = user?._id ?? user?.id;
-  const [items, setItems] = useState([]);
-  const [status, setStatus] = useState('loading');
-  const [error, setError] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const dispatch = useDispatch();
+  const items = useSelector(selectListItems);
+  const storedStatus = useSelector(selectListStatus);
+  const status = storedStatus === 'idle' ? 'loading' : storedStatus;
+  const error = useSelector(selectListError);
+  const refreshing = useSelector(selectListRefreshing);
 
-  const reload = useCallback(async () => {
-    setStatus('loading');
-    setError('');
-    try {
-      await ensureOnline();
-      setItems(await fetchItems(ownerId));
-      setStatus('success');
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setStatus('error');
-    }
-  }, [ownerId]);
+  const reload = useCallback(() => {
+    dispatch(loadList(ownerId));
+  }, [dispatch, ownerId]);
 
   const refresh = useCallback(async () => {
-    setRefreshing(true);
     try {
-      await ensureOnline();
-      setItems(await fetchItems(ownerId));
-      setStatus('success');
+      await dispatch(refreshList(ownerId)).unwrap();
       return true;
-    } catch (err) {
+    } catch {
       return false;
-    } finally {
-      setRefreshing(false);
     }
-  }, [ownerId]);
+  }, [dispatch, ownerId]);
 
   useEffect(() => {
     reload();
@@ -46,57 +43,29 @@ export default function useShoppingList() {
 
   useOnReconnect(refresh);
 
-  const add = useCallback(async (name) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return { ok: false, message: 'Enter an item name first.' };
-    }
+  const run = useCallback(
+    async (thunkAction) => {
+      try {
+        await dispatch(thunkAction).unwrap();
+        return { ok: true };
+      } catch (message) {
+        return { ok: false, message };
+      }
+    },
+    [dispatch]
+  );
 
-    try {
-      await ensureOnline();
-      const item = await createItem(trimmedName);
-      setItems((current) => [item, ...current]);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, message: getErrorMessage(err) };
-    }
-  }, []);
+  const add = useCallback(
+    (name) => {
+      const trimmedName = name.trim();
+      if (!trimmedName) return Promise.resolve({ ok: false, message: 'Enter an item name first.' });
+      return run(addListItem(trimmedName));
+    },
+    [run]
+  );
 
-  const toggle = useCallback(async (item) => {
-    const done = !item.done;
-    setItems((current) =>
-      current.map((currentItem) =>
-        currentItem.id === item.id ? { ...currentItem, done } : currentItem
-      )
-    );
-
-    try {
-      await ensureOnline();
-      const updatedItem = await setItemDone(item.id, done);
-      setItems((current) =>
-        current.map((currentItem) => (currentItem.id === item.id ? updatedItem : currentItem))
-      );
-      return { ok: true };
-    } catch (err) {
-      setItems((current) =>
-        current.map((currentItem) =>
-          currentItem.id === item.id ? { ...currentItem, done: item.done } : currentItem
-        )
-      );
-      return { ok: false, message: getErrorMessage(err) };
-    }
-  }, []);
-
-  const remove = useCallback(async (item) => {
-    try {
-      await ensureOnline();
-      await deleteItem(item.id);
-      setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, message: getErrorMessage(err) };
-    }
-  }, []);
+  const toggle = useCallback((item) => run(toggleListItem(item)), [run]);
+  const remove = useCallback((item) => run(removeListItem(item)), [run]);
 
   return { items, status, error, refreshing, reload, refresh, add, toggle, remove };
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import { Button, Checkbox, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
 import ErrorState from '../components/ErrorState';
 import ListSkeleton from '../components/ListSkeleton';
+import useLocationTags from '../hooks/useLocationTags';
 import useShoppingList from '../hooks/useShoppingList';
+import { formatCoords } from '../utils/format';
 import { colors, spacing } from '../theme';
 
 function EmptyList() {
@@ -14,8 +16,17 @@ export default function ShoppingListScreen() {
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [adding, setAdding] = useState(false);
+  const [needsSettings, setNeedsSettings] = useState(false);
   const { items, status, error, refreshing, reload, refresh, add, toggle, remove } =
     useShoppingList();
+  const { tags, tagItem, clearTag } = useLocationTags();
+
+  const report = (result) => {
+    if (!result.ok) {
+      setNeedsSettings(false);
+      setMessage(result.message);
+    }
+  };
 
   const handleAdd = async () => {
     setAdding(true);
@@ -24,7 +35,7 @@ export default function ShoppingListScreen() {
       if (result.ok) {
         setName('');
       } else {
-        setMessage(result.message);
+        report(result);
       }
     } finally {
       setAdding(false);
@@ -32,18 +43,42 @@ export default function ShoppingListScreen() {
   };
 
   const handleToggle = async (item) => {
-    const result = await toggle(item);
-    if (!result.ok) setMessage(result.message);
+    report(await toggle(item));
   };
 
   const handleRemove = async (item) => {
-    const result = await remove(item);
-    if (!result.ok) setMessage(result.message);
+    report(await remove(item));
+  };
+
+  const handleTag = async (item) => {
+    setNeedsSettings(false);
+    if (tags[item.id]) {
+      clearTag(item.id);
+      return;
+    }
+
+    const result = await tagItem(item.id);
+    if (!result.ok) {
+      setNeedsSettings(result.needsSettings);
+      setMessage(result.message);
+    }
+  };
+
+  const openSettings = async () => {
+    setNeedsSettings(false);
+    try {
+      await Linking.openSettings();
+    } catch {
+      setMessage('Could not open Settings. Please open it manually.');
+    }
   };
 
   const handleRefresh = async () => {
     const worked = await refresh();
-    if (!worked) setMessage('Could not refresh. Showing the items from earlier.');
+    if (!worked) {
+      setNeedsSettings(false);
+      setMessage('Could not refresh. Showing the items from earlier.');
+    }
   };
 
   if (status === 'loading') {
@@ -84,29 +119,52 @@ export default function ShoppingListScreen() {
 
       <FlatList
         data={items}
+        extraData={tags}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Checkbox
-              status={item.done ? 'checked' : 'unchecked'}
-              onPress={() => handleToggle(item)}
-              accessibilityLabel={`Mark ${item.name} ${item.done ? 'not done' : 'done'}`}
-            />
-            <Text
-              variant="bodyLarge"
-              style={[styles.itemName, item.done && styles.done]}
-              onPress={() => handleToggle(item)}
-            >
-              {item.name}
-            </Text>
-            {item.urgent && <Text style={styles.urgent}>Urgent</Text>}
-            <IconButton
-              icon="delete-outline"
-              accessibilityLabel={`Remove ${item.name}`}
-              onPress={() => handleRemove(item)}
-            />
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const tag = tags[item.id];
+          return (
+            <View style={styles.itemContainer}>
+              <View style={styles.itemContent}>
+                <Checkbox
+                  status={item.done ? 'checked' : 'unchecked'}
+                  onPress={() => handleToggle(item)}
+                  accessibilityLabel={`Mark ${item.name} ${item.done ? 'not done' : 'done'}`}
+                />
+                <Text
+                  variant="bodyLarge"
+                  style={[styles.itemName, item.done && styles.done]}
+                  onPress={() => handleToggle(item)}
+                >
+                  {item.name}
+                </Text>
+                {item.urgent && <Text style={styles.urgent}>Urgent</Text>}
+                <View style={styles.actions}>
+                  <IconButton
+                    icon={tag ? 'map-marker-check' : 'map-marker-plus-outline'}
+                    iconColor={tag ? colors.primary : colors.muted}
+                    accessibilityLabel={
+                      tag
+                        ? `Remove location tag from ${item.name}`
+                        : `Tag ${item.name} with my location`
+                    }
+                    onPress={() => handleTag(item)}
+                  />
+                  <IconButton
+                    icon="delete-outline"
+                    accessibilityLabel={`Remove ${item.name}`}
+                    onPress={() => handleRemove(item)}
+                  />
+                </View>
+              </View>
+              {tag && (
+                <Text style={styles.locationTag}>
+                  Tagged at {formatCoords(tag)}
+                </Text>
+              )}
+            </View>
+          );
+        }}
         ListEmptyComponent={<EmptyList />}
         refreshControl={
           <RefreshControl
@@ -119,7 +177,15 @@ export default function ShoppingListScreen() {
         keyboardShouldPersistTaps="handled"
       />
 
-      <Snackbar visible={message !== ''} onDismiss={() => setMessage('')} duration={2500}>
+      <Snackbar
+        visible={message !== ''}
+        onDismiss={() => {
+          setMessage('');
+          setNeedsSettings(false);
+        }}
+        duration={3500}
+        action={needsSettings ? { label: 'Settings', onPress: openSettings } : undefined}
+      >
         {message}
       </Snackbar>
     </View>
@@ -157,15 +223,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: spacing.xl,
   },
-  row: {
+  itemContainer: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    paddingBottom: spacing.xs,
+  },
+  itemContent: {
     minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
   },
   itemName: {
     flex: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   done: {
     textDecorationLine: 'line-through',
@@ -174,5 +247,11 @@ const styles = StyleSheet.create({
   urgent: {
     color: colors.danger,
     marginHorizontal: spacing.sm,
+  },
+  locationTag: {
+    color: colors.muted,
+    fontSize: 12,
+    paddingLeft: spacing.xl,
+    paddingBottom: spacing.xs,
   },
 });
