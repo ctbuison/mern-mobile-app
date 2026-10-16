@@ -41,6 +41,12 @@
           "cameraPermission": "Shopfront uses the camera to take your profile photo.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Shopfront uses your location to show where you are and to tag where you shop."
+        }
       ]
     ]
   }
