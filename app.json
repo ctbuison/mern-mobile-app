@@ -26,7 +26,22 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Shopfront reads your photo library so you can choose a profile photo.",
+          "cameraPermission": "Shopfront uses the camera to take your profile photo.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Shopfront uses the camera to take your profile photo.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
