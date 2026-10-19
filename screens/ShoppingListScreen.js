@@ -1,117 +1,121 @@
-import { useState } from 'react';
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
-import { Button, Checkbox, IconButton, Snackbar, Text, TextInput } from 'react-native-paper';
+import { useCallback, useState } from 'react';
+import { View, FlatList, Linking, RefreshControl, StyleSheet } from 'react-native';
+import { Button, Divider, Snackbar, Text, TextInput } from 'react-native-paper';
 import ErrorState from '../components/ErrorState';
 import ListSkeleton from '../components/ListSkeleton';
+import OfflineBanner from '../components/OfflineBanner';
+import ShoppingRow from '../components/ShoppingRow';
 import useLocationTags from '../hooks/useLocationTags';
 import useShoppingList from '../hooks/useShoppingList';
-import { formatCoords } from '../utils/format';
 import { colors, spacing } from '../theme';
 
-function EmptyList() {
-  return <Text style={styles.empty}>Your shopping list is empty. Add your first item above.</Text>;
-}
+const keyExtractor = (item) => item.id;
 
 export default function ShoppingListScreen() {
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [needsSettings, setNeedsSettings] = useState(false);
   const { items, status, error, refreshing, reload, refresh, add, toggle, remove } =
     useShoppingList();
   const { tags, tagItem, clearTag } = useLocationTags();
+  const [name, setName] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [message, setMessage] = useState('');
+  const [needsSettings, setNeedsSettings] = useState(false);
 
-  const report = (result) => {
+  const handleAdd = async () => {
+    const trimmed = name.trim();
+    if (trimmed === '') return;
+
+    setAdding(true);
+    const result = await add(trimmed);
+    setAdding(false);
+
+    if (result.ok) {
+      setName('');
+    } else {
+      setMessage(result.message);
+    }
+  };
+
+  // Every handler below is wrapped in useCallback so ShoppingRow (which is memo'd) sees the same function each render.
+  // The state setters (setMessage, setNeedsSettings) never change identity, so they are safe dependencies.
+  const report = useCallback((result) => {
     if (!result.ok) {
       setNeedsSettings(false);
       setMessage(result.message);
     }
-  };
+  }, []);
 
-  const handleAdd = async () => {
-    setAdding(true);
-    try {
-      const result = await add(name);
-      if (result.ok) {
-        setName('');
-      } else {
-        report(result);
+  const handleToggle = useCallback(async (item) => report(await toggle(item)), [toggle, report]);
+  const handleRemove = useCallback(async (item) => report(await remove(item)), [remove, report]);
+
+  // Tap once to tag the item with where you are now. Tap again to remove the tag.
+  // The row tells us whether it already has a tag, so this callback does not depend on `tags`.
+  const handleTag = useCallback(
+    async (item, hasTag) => {
+      if (hasTag) {
+        clearTag(item.id);
+        return;
       }
-    } finally {
-      setAdding(false);
-    }
-  };
+      const result = await tagItem(item.id);
+      if (!result.ok) {
+        setNeedsSettings(result.needsSettings);
+        setMessage(result.message);
+      }
+    },
+    [tagItem, clearTag]
+  );
 
-  const handleToggle = async (item) => {
-    report(await toggle(item));
-  };
-
-  const handleRemove = async (item) => {
-    report(await remove(item));
-  };
-
-  const handleTag = async (item) => {
-    setNeedsSettings(false);
-    if (tags[item.id]) {
-      clearTag(item.id);
-      return;
-    }
-
-    const result = await tagItem(item.id);
-    if (!result.ok) {
-      setNeedsSettings(result.needsSettings);
-      setMessage(result.message);
-    }
-  };
-
-  const openSettings = async () => {
-    setNeedsSettings(false);
-    try {
-      await Linking.openSettings();
-    } catch {
-      setMessage('Could not open Settings. Please open it manually.');
-    }
-  };
+  // renderItem reads `tags`, so it gets a new identity only when a tag changes. Rows whose own tag is unchanged still skip.
+  const renderItem = useCallback(
+    ({ item }) => (
+      <ShoppingRow
+        item={item}
+        tag={tags[item.id]}
+        onToggle={handleToggle}
+        onTag={handleTag}
+        onRemove={handleRemove}
+      />
+    ),
+    [tags, handleToggle, handleTag, handleRemove]
+  );
 
   const handleRefresh = async () => {
     const worked = await refresh();
-    if (!worked) {
-      setNeedsSettings(false);
-      setMessage('Could not refresh. Showing the items from earlier.');
-    }
+    if (!worked) setMessage('Could not refresh. Showing your list from earlier.');
   };
 
+  let emptyComponent = (
+    <View style={styles.empty}>
+      <Text variant="titleMedium">Your list is empty</Text>
+      <Text style={styles.hint}>Add your first item above.</Text>
+    </View>
+  );
   if (status === 'loading') {
-    return (
-      <View style={styles.screen}>
-        <ListSkeleton />
-      </View>
-    );
-  }
-
-  if (status === 'error') {
-    return <ErrorState message={error} onRetry={reload} />;
+    emptyComponent = <ListSkeleton />;
+  } else if (status === 'error') {
+    emptyComponent = <ErrorState message={error} onRetry={reload} />;
   }
 
   return (
     <View style={styles.screen}>
+      <OfflineBanner />
+
       <View style={styles.addRow}>
         <TextInput
           mode="outlined"
-          label="New item"
+          dense
+          label="Add an item"
+          accessibilityLabel="New item"
           value={name}
           onChangeText={setName}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
           style={styles.input}
-          accessibilityLabel="New shopping list item"
         />
         <Button
           mode="contained"
           onPress={handleAdd}
-          disabled={!name.trim() || adding}
           loading={adding}
-          style={styles.addButton}
+          disabled={adding || name.trim() === ''}
         >
           Add
         </Button>
@@ -119,72 +123,21 @@ export default function ShoppingListScreen() {
 
       <FlatList
         data={items}
+        keyExtractor={keyExtractor}
+        ItemSeparatorComponent={Divider}
+        ListEmptyComponent={emptyComponent}
         extraData={tags}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const tag = tags[item.id];
-          return (
-            <View style={styles.itemContainer}>
-              <View style={styles.itemContent}>
-                <Checkbox
-                  status={item.done ? 'checked' : 'unchecked'}
-                  onPress={() => handleToggle(item)}
-                  accessibilityLabel={`Mark ${item.name} ${item.done ? 'not done' : 'done'}`}
-                />
-                <Text
-                  variant="bodyLarge"
-                  style={[styles.itemName, item.done && styles.done]}
-                  onPress={() => handleToggle(item)}
-                >
-                  {item.name}
-                </Text>
-                {item.urgent && <Text style={styles.urgent}>Urgent</Text>}
-                <View style={styles.actions}>
-                  <IconButton
-                    icon={tag ? 'map-marker-check' : 'map-marker-plus-outline'}
-                    iconColor={tag ? colors.primary : colors.muted}
-                    accessibilityLabel={
-                      tag
-                        ? `Remove location tag from ${item.name}`
-                        : `Tag ${item.name} with my location`
-                    }
-                    onPress={() => handleTag(item)}
-                  />
-                  <IconButton
-                    icon="delete-outline"
-                    accessibilityLabel={`Remove ${item.name}`}
-                    onPress={() => handleRemove(item)}
-                  />
-                </View>
-              </View>
-              {tag && (
-                <Text style={styles.locationTag}>
-                  Tagged at {formatCoords(tag)}
-                </Text>
-              )}
-            </View>
-          );
-        }}
-        ListEmptyComponent={<EmptyList />}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
-        contentContainerStyle={items.length === 0 ? styles.emptyContent : styles.listContent}
-        keyboardShouldPersistTaps="handled"
+        renderItem={renderItem}
       />
 
       <Snackbar
         visible={message !== ''}
-        onDismiss={() => {
-          setMessage('');
-          setNeedsSettings(false);
-        }}
-        duration={3500}
-        action={needsSettings ? { label: 'Settings', onPress: openSettings } : undefined}
+        onDismiss={() => setMessage('')}
+        duration={3000}
+        action={needsSettings ? { label: 'Settings', onPress: () => Linking.openSettings() } : undefined}
       >
         {message}
       </Snackbar>
@@ -195,63 +148,23 @@ export default function ShoppingListScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
+    backgroundColor: colors.surface,
   },
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    padding: spacing.lg,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.surface,
-  },
-  addButton: {
-    justifyContent: 'center',
-  },
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
-  emptyContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
   },
   empty: {
-    color: colors.muted,
-    textAlign: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
     padding: spacing.xl,
   },
-  itemContainer: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    paddingBottom: spacing.xs,
-  },
-  itemContent: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemName: {
-    flex: 1,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  done: {
-    textDecorationLine: 'line-through',
+  hint: {
     color: colors.muted,
-  },
-  urgent: {
-    color: colors.danger,
-    marginHorizontal: spacing.sm,
-  },
-  locationTag: {
-    color: colors.muted,
-    fontSize: 12,
-    paddingLeft: spacing.xl,
-    paddingBottom: spacing.xs,
   },
 });

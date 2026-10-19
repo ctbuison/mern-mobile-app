@@ -1,4 +1,4 @@
-// A middleware sits between dispatch(action) and the reducers. This one just prints each action.
+// A middleware sits between dispatch(action) and the . This one just prints each action.
 // The extra arrows are how Redux hands a middleware the store, then "next", then the action.
 function describe(payload) {
   if (payload === undefined) return '';
