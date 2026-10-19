@@ -100,47 +100,56 @@ export default function ShoppingListScreen() {
     <View style={styles.screen}>
       <OfflineBanner />
 
-      <View style={styles.addRow}>
-        <TextInput
-          mode="outlined"
-          dense
-          label="Add an item"
-          accessibilityLabel="New item"
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-          style={styles.input}
+      {/* On an iPad the list would stretch across the whole screen. Keep it a readable width, centred. */}
+      <View style={styles.column}>
+        <View style={styles.addRow}>
+          <TextInput
+            mode="outlined"
+            dense
+            label="Add an item"
+            accessibilityLabel="New item"
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={handleAdd}
+            returnKeyType="done"
+            style={styles.input}
+          />
+          <Button
+            mode="contained"
+            onPress={handleAdd}
+            loading={adding}
+            disabled={adding || name.trim() === ''}
+          >
+            Add
+          </Button>
+        </View>
+
+        <ListSummary items={items} />
+
+        <FlatList
+          data={items}
+          keyExtractor={keyExtractor}
+          ItemSeparatorComponent={Divider}
+          ListEmptyComponent={emptyComponent}
+          extraData={tags}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          renderItem={renderItem}
         />
-        <Button
-          mode="contained"
-          onPress={handleAdd}
-          loading={adding}
-          disabled={adding || name.trim() === ''}
-        >
-          Add
-        </Button>
       </View>
-
-      <ListSummary items={items} />
-
-      <FlatList
-        data={items}
-        keyExtractor={keyExtractor}
-        ItemSeparatorComponent={Divider}
-        ListEmptyComponent={emptyComponent}
-        extraData={tags}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-        }
-        renderItem={renderItem}
-      />
 
       <Snackbar
         visible={message !== ''}
         onDismiss={() => setMessage('')}
         duration={3000}
-        action={needsSettings ? { label: 'Settings', onPress: () => Linking.openSettings() } : undefined}
+        action={
+          needsSettings ? { label: 'Settings', onPress: () => Linking.openSettings() } : undefined
+        }
       >
         {message}
       </Snackbar>
@@ -152,6 +161,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.surface,
+  },
+  column: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   addRow: {
     flexDirection: 'row',

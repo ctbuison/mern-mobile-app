@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Text, Button, useTheme } from 'react-native-paper';
@@ -17,38 +17,57 @@ export default function ProductCard({ product, onAdd }) {
   const navigation = useNavigation();
   const outOfStock = !product.inStock;
 
+  // What VoiceOver reads for the whole card: the facts a sighted person takes in at a glance.
+  const spokenSummary = `${product.name}, ${formatPrice(product.price)}, ${outOfStock ? 'out of stock' : 'in stock'}`;
+
   return (
-    <Card
-      style={[styles.card, outOfStock && styles.outOfStock]}
-      onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
-    >
-      <Image
-        source={{ uri: sizedImageUrl(product.imageUrl, CARD_IMAGE_WIDTH) }}
-        style={styles.cover}
-        contentFit="cover"
-        transition={200}
-        cachePolicy="memory-disk"
-        placeholder={{ blurhash: BLURHASH }}
-        accessibilityLabel={`${product.name} photo`}
-      />
-      <Card.Content style={styles.content}>
-        <Text variant="titleMedium" numberOfLines={1}>
-          {product.name}
-        </Text>
-        <Text variant="bodySmall" style={{ color: theme.colors.outline }}>
-          {product.category}
-        </Text>
-        <Text variant="titleSmall" style={{ color: theme.colors.primary }}>
-          {formatPrice(product.price)}
-        </Text>
-        {outOfStock && (
-          <Text variant="labelMedium" style={{ color: theme.colors.error }}>
-            Out of stock
+    <Card style={[styles.card, outOfStock && styles.outOfStock]}>
+      {/* One tappable area for "open this product". The Add button sits outside it,
+          so VoiceOver can reach it as its own control instead of it being swallowed by the card. */}
+      <Pressable
+        onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
+        accessibilityRole="button"
+        accessibilityLabel={spokenSummary}
+        accessibilityHint="Opens the product details"
+      >
+        <Image
+          source={{ uri: sizedImageUrl(product.imageUrl, CARD_IMAGE_WIDTH) }}
+          style={styles.cover}
+          contentFit="cover"
+          transition={200}
+          cachePolicy="memory-disk"
+          placeholder={{ blurhash: BLURHASH }}
+          accessible={false}
+        />
+        <Card.Content style={styles.content}>
+          <Text variant="titleMedium" numberOfLines={1} maxFontSizeMultiplier={1.4}>
+            {product.name}
           </Text>
-        )}
-      </Card.Content>
+          <Text variant="bodySmall" style={{ color: theme.colors.outline }} maxFontSizeMultiplier={1.4}>
+            {product.category}
+          </Text>
+          <Text
+            variant="titleSmall"
+            style={{ color: theme.colors.primary }}
+            maxFontSizeMultiplier={1.4}
+          >
+            {formatPrice(product.price)}
+          </Text>
+          {outOfStock && (
+            <Text variant="labelMedium" style={{ color: theme.colors.error }} maxFontSizeMultiplier={1.4}>
+              Out of stock
+            </Text>
+          )}
+        </Card.Content>
+      </Pressable>
       <Card.Actions>
-        <Button mode="contained-tonal" compact disabled={outOfStock} onPress={() => onAdd(product)}>
+        <Button
+          mode="contained-tonal"
+          compact
+          disabled={outOfStock}
+          onPress={() => onAdd(product)}
+          accessibilityLabel={`Add ${product.name} to cart`}
+        >
           Add
         </Button>
       </Card.Actions>
