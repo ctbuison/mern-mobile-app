@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
 import { Card, Text, Button, useTheme } from 'react-native-paper';
 import { spacing } from '../theme';
 import { formatPrice } from '../utils/format';
 import { sizedImageUrl } from '../utils/imageUrl';
+import { renderLog } from '../lib/renderLog';
 
 // The widest card (iPad, 4 columns) is about 250 points wide, so ask the server for that, not for the full 600.
 const CARD_IMAGE_WIDTH = 250;
@@ -12,10 +13,10 @@ const CARD_IMAGE_WIDTH = 250;
 // A neutral grey-beige blur shown while the real photo downloads.
 const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
-export default function ProductCard({ product, onAdd }) {
+function ProductCard({ product, onAdd, onOpen }) {
   const theme = useTheme();
-  const navigation = useNavigation();
   const outOfStock = !product.inStock;
+  renderLog('ProductCard', product.id);
 
   // What VoiceOver reads for the whole card: the facts a sighted person takes in at a glance.
   const spokenSummary = `${product.name}, ${formatPrice(product.price)}, ${outOfStock ? 'out of stock' : 'in stock'}`;
@@ -25,7 +26,7 @@ export default function ProductCard({ product, onAdd }) {
       {/* One tappable area for "open this product". The Add button sits outside it,
           so VoiceOver can reach it as its own control instead of it being swallowed by the card. */}
       <Pressable
-        onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
+        onPress={() => onOpen(product.id)}
         accessibilityRole="button"
         accessibilityLabel={spokenSummary}
         accessibilityHint="Opens the product details"
@@ -74,6 +75,8 @@ export default function ProductCard({ product, onAdd }) {
     </Card>
   );
 }
+
+export default memo(ProductCard);
 
 const styles = StyleSheet.create({
   card: {

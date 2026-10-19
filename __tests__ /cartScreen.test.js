@@ -1,9 +1,14 @@
-import { screen, userEvent } from '@testing-library/react-native';
+import { act, screen, userEvent } from '@testing-library/react-native';
 import CartScreen from '../screens/CartScreen';
 import { renderWithStore } from '../test-utils/renderWithStore';
+import { addItem } from '../store/cartSlice';
 
 const tote = { id: '1', name: 'Canvas Tote Bag', price: 450 };
 const hat = { id: '3', name: 'Bucket Hat', price: 280 };
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 test('shows a friendly message when the cart is empty', () => {
   renderWithStore(<CartScreen />);
@@ -30,4 +35,25 @@ test('removing an item updates the screen and the store', async () => {
   expect(screen.queryByText('Canvas Tote Bag')).toBeNull();
   expect(screen.getByText('Bucket Hat')).toBeTruthy();
   expect(store.getState().cart.items).toHaveLength(1);
+});
+
+test('adding to an existing cart item rerenders only that row', () => {
+  const rowRenders = [];
+  jest.spyOn(console, 'log').mockImplementation((tag, name, id) => {
+    if (tag === '[render]' && name === 'CartRow') {
+      rowRenders.push(id);
+    }
+  });
+  const { store } = renderWithStore(<CartScreen />, {
+    preloadedState: {
+      cart: { items: [{ product: tote, quantity: 1 }, { product: hat, quantity: 1 }] },
+    },
+  });
+
+  rowRenders.length = 0;
+  act(() => {
+    store.dispatch(addItem(tote));
+  });
+  expect(rowRenders).toEqual(['1']);
+  expect(rowRenders).toEqual(['1']);
 });

@@ -1,14 +1,28 @@
+import { useCallback } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
-import { Text, List, IconButton, Divider } from 'react-native-paper';
+import { Text, Divider } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
+import CartRow from '../components/CartRow';
 import { removeItem, selectCartItems, selectCartTotal } from '../store/cartSlice';
 import { formatPrice } from '../utils/format';
 import { colors, spacing } from '../theme';
+
+function keyExtractor(item) {
+  return item.product.id;
+}
 
 export default function CartScreen() {
   const dispatch = useDispatch();
   const items = useSelector(selectCartItems);
   const total = useSelector(selectCartTotal);
+
+  const handleRemove = useCallback((productId) => {
+    dispatch(removeItem(productId));
+  }, [dispatch]);
+
+  const renderItem = useCallback(({ item }) => (
+    <CartRow item={item} onRemove={handleRemove} />
+  ), [handleRemove]);
 
   if (items.length === 0) {
     return (
@@ -23,21 +37,9 @@ export default function CartScreen() {
     <View style={styles.screen}>
       <FlatList
         data={items}
-        keyExtractor={(item) => item.product.id}
+        keyExtractor={keyExtractor}
         ItemSeparatorComponent={Divider}
-        renderItem={({ item }) => (
-          <List.Item
-            title={item.product.name}
-            description={`${item.quantity} x ${formatPrice(item.product.price)}`}
-            right={() => (
-              <IconButton
-                icon="delete-outline"
-                accessibilityLabel={`Remove ${item.product.name}`}
-                onPress={() => dispatch(removeItem(item.product.id))}
-              />
-            )}
-          />
-        )}
+        renderItem={renderItem}
       />
       <View style={styles.footer}>
         <Text variant="titleMedium">Total</Text>

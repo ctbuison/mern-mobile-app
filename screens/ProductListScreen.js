@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
@@ -25,6 +25,10 @@ function Separator() {
   return <View style={styles.separator} />;
 }
 
+function keyExtractor(item) {
+  return item.id;
+}
+
 export default function ProductListScreen({ navigation }) {
   useScreenLog();
   const dispatch = useDispatch();
@@ -36,15 +40,23 @@ export default function ProductListScreen({ navigation }) {
   const [showInfo, setShowInfo] = useState(false);
   const { products, status, error, refreshing, lastUpdated, reload, refresh } = useProducts();
 
-  const categories = ['All', ...new Set(products.map((product) => product.category))];
+  const categories = useMemo(
+    () => ['All', ...new Set(products.map((product) => product.category))],
+    [products]
+  );
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleProducts = products.filter((product) => {
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesQuery = product.name.toLowerCase().includes(normalizedQuery);
-    return matchesCategory && matchesQuery;
-  });
-  const gridData = padToFullRows(visibleProducts, numColumns);
+  const visibleProducts = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return products.filter((product) => {
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+      const matchesQuery = product.name.toLowerCase().includes(normalizedQuery);
+      return matchesCategory && matchesQuery;
+    });
+  }, [products, query, selectedCategory]);
+  const gridData = useMemo(
+    () => padToFullRows(visibleProducts, numColumns),
+    [visibleProducts, numColumns]
+  );
 
   // What the list shows when it has no rows: a spinner, an error with a retry, or "no matches".
   let emptyComponent = <EmptyList />;
@@ -65,10 +77,21 @@ export default function ProductListScreen({ navigation }) {
     navigation.dispatch(DrawerActions.toggleDrawer());
   };
 
-  const handleAdd = (product) => {
+  const handleAdd = useCallback((product) => {
     dispatch(addItem(product));
     setMessage(`${product.name} added to cart`);
-  };
+  }, [dispatch]);
+
+  const handleOpen = useCallback((productId) => {
+    navigation.navigate('ProductDetail', { productId });
+  }, [navigation]);
+
+  const renderItem = useCallback(({ item }) =>
+    item.spacer ? (
+      <View style={styles.spacer} />
+    ) : (
+      <ProductCard product={item} onAdd={handleAdd} onOpen={handleOpen} />
+    ), [handleAdd, handleOpen]);
 
   return (
     <View style={styles.screen}>
@@ -128,14 +151,8 @@ export default function ProductListScreen({ navigation }) {
           <FlatList
             key={numColumns}
             data={gridData}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) =>
-              item.spacer ? (
-                <View style={styles.spacer} />
-              ) : (
-                <ProductCard product={item} onAdd={handleAdd} />
-              )
-            }
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
             numColumns={numColumns}
             columnWrapperStyle={styles.columnWrapper}
             ItemSeparatorComponent={Separator}
