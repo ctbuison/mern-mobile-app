@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect } from 'react';
-import { View, Image, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import {
   Text,
   Button,
@@ -20,6 +21,7 @@ import { formatPrice } from '../utils/format';
 import { colors, spacing } from '../theme';
 
 const MAX_QUANTITY = 10;
+const BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
 export default function ProductDetailScreen({ route, navigation }) {
   useScreenLog();
@@ -75,6 +77,11 @@ export default function ProductDetailScreen({ route, navigation }) {
           <Image
             source={{ uri: product.imageUrl }}
             style={[styles.image, isWide && styles.imageWide]}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+            placeholder={{ blurhash: BLURHASH }}
+            accessibilityLabel={`${product.name} photo`}
           />
 
           <View style={styles.details}>
