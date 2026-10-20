@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mern-mobile-app",
+    "name": "Shopfront",
     "slug": "mern-mobile-app",
     "version": "1.0.0",
     "orientation": "default",
@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.phoenixone.shopfront.charles",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
