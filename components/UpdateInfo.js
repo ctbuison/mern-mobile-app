@@ -9,7 +9,7 @@ export default function UpdateInfo() {
 
   return (
     <>
-      <Text style={styles.hint}>Release: 1.0.0 (first build)</Text>
+      <Text style={styles.hint}>Release: 1.0.1 (OTA update)</Text>
       <Text style={styles.hint}>Channel: {channel}</Text>
       <Text style={styles.hint}>Update ID: {updateId}</Text>
     </>
